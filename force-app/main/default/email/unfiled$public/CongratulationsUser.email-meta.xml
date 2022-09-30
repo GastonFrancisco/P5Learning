@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EmailTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <available>true</available>
+    <encodingKey>UTF-8</encodingKey>
+    <letterhead>Congratulations</letterhead>
+    <name>CongratulationsUser</name>
+    <style>formalLetter</style>
+    <subject>Congratulations!</subject>
+    <textOnly>Hi, {!User.FirstName}!
+
+Congratulations on completing a module and earning a badge!
+
+P5Learning team.</textOnly>
+    <type>html</type>
+    <uiType>Aloha</uiType>
+</EmailTemplate>
