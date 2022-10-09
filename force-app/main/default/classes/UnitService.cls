@@ -59,27 +59,31 @@ public with sharing class UnitService {
     }
 
     @AuraEnabled(cacheable=true)
-    public static void metodoDos(Id unitId, String optionByQuestion){
+    public static String metodoDos(Id unitId, String optionByQuestion){
         Id userId = UserInfo.getUserId();
 
         Unit_Progress__c insertedUnitProgress = [SELECT Id, Status__c, Counter__c, Unit__r.Points__c FROM Unit_Progress__c WHERE Unit__c = :unitId AND User__c = :userId];
 
         insertedUnitProgress.Status__c = 'Answered';
-        insertedUnitProgress.Counter__c = 1;
         insertedUnitProgress.Points__c = insertedUnitProgress.Unit__r.Points__c;
-
-        update insertedUnitProgress;
-
+        
         Map<Id, Id> optionsByQuestion = (Map<Id, Id>)JSON.deserializeStrict( optionByquestion, Map<Id, Id>.class);
 
         List<Question_Progress__c> questionProgressToInsert = new List<Question_Progress__c>();
-    
+        
         Set<Id> questionIds = optionsByQuestion.keySet();
         for (Id question : questionIds) {
             Question_Progress__c questionProgress = new Question_Progress__c(Unit_Progress__c = insertedUnitProgress.Id, Question__c = question, Option__c = optionsByquestion.get(question));
             questionProgressToInsert.add(questionProgress);
         }
+
         insert questionProgressToInsert;
+
+        update insertedUnitProgress;
+
+        Unit_Progress__c refreshedUnit = [SELECT Id, Status__c FROM Unit_Progress__c WHERE User__c = :userId AND Unit__c = :unitId AND Id = :insertedUnitProgress.Id];
+        
+        return refreshedUnit.Status__c;
     }    
     
     public class TrailWrapper{
@@ -189,10 +193,10 @@ public with sharing class UnitService {
     @AuraEnabled(cacheable=true)
     public static UnitWrapper getUnitWrapper(Id unitId){
 
-        TrailWrapper trail = new TrailWrapper(([SELECT Name, Description__c, Time__c, Points__c FROM Trail__c WHERE Id = :trailId]), getModule(trailId), getCompletedModules(trailId), getUnitsWithProgress(trailId));
-        return trail;
+        // TrailWrapper trail = new TrailWrapper(([SELECT Name, Description__c, Time__c, Points__c FROM Trail__c WHERE Id = :trailId]), getModule(trailId), getCompletedModules(trailId), getUnitsWithProgress(trailId));
+        // return trail;
 
-        UnitWrapper unitWrapper = new UnitWrapper(([SELECT Name, Content__c, Points__c, Time__c FROM Unit__c WHERE Id = :unitId]), getQuestionsFromUnit(unitId));
+        UnitWrapper unitWrapper = new UnitWrapper(([SELECT Content__c, Points__c, Time__c, Name FROM Unit__c WHERE Id = :unitId]), getQuestionsFromUnit(unitId));
         return unitWrapper;
     }
 
@@ -203,7 +207,7 @@ public with sharing class UnitService {
     // }
 
     public static List<Question__c> getQuestionsFromUnit(Id unitId){
-        List<Question__c> questions = [SELECT Content__c, (SELECT Content__c, IsCorrect__c FROM Options__r), (SELECT IsCompleted__c, Option__c, Question__c FROM Questions_Progress__r) FROM Question__c WHERE Unit__c =: unitId];
+        List<Question__c> questions = [SELECT Content__c, (SELECT Id, Content__c, IsCorrect__c FROM Options__r), (SELECT IsCompleted__c, Option__c, Question__c FROM Questions_Progress__r) FROM Question__c WHERE Unit__c =: unitId];
 
         return questions;
     }

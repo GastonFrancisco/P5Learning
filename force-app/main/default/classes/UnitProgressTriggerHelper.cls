@@ -29,7 +29,7 @@ public with sharing class UnitProgressTriggerHelper {
                     userIndexByUnitProgress.put(unitPro.Id, usersFromUnitProgress.indexOf(user));
                 }
             }
-
+            //COMENTARIO 09/10 mientras recorro las respuestas de las preguntas sumo en un contador las que fueron respodidas correctamente. Si la cantidad de respuesta respondidas correctamente iguala a la cantidad de preguntas seteo el unitProgress.Status__c en 'success'
             if(unitProgressQuery.size() != 0 ){
                 for(Unit_Progress__c unitProgress : unitProgressQuery){
                     for(Question_Progress__c question : unitProgress.Questions_Progress__r) {
@@ -39,11 +39,15 @@ public with sharing class UnitProgressTriggerHelper {
                                 //Le pedimos al mapa userIndexByUnitProgress[linea 26] a traves de cada key(Id de UnitProgress[linea 34]) obtenida en las iteracionnes de unitProgress[linea 34] que nos devuelva un indice. Esto permite setear Points__c de cada User y que esten correctamente relacionados
 								usersFromUnitProgress[userIndexByUnitProgress.get(unitProgress.Id)].Points__c += unitProgress.Points__c;
                             }
-                        } else if(!question.Option__r.IsCorrect__c && unitProgress.Counter__c <= 2){
+                        }else if(!question.Option__r.IsCorrect__c && unitProgress.Counter__c == null){
                             unitProgress.Status__c = 'Fail';
-                            unitProgress.Counter__c ++ ;
+                            unitProgress.Counter__c = 1;
                             unitProgress.Points__c = unitProgress.Points__c/2;
-                        }else if(!question.Option__r.IsCorrect__c && unitProgress.Counter__c >= 3){
+                        }else if(!question.Option__r.IsCorrect__c && unitProgress.Counter__c <= 1){
+                            unitProgress.Status__c = 'Fail';
+                            unitProgress.Counter__c ++;
+                            unitProgress.Points__c = unitProgress.Points__c/2;
+                        }else if(!question.Option__r.IsCorrect__c && unitProgress.Counter__c >= 2){
                             unitProgress.Status__c = 'Fail';
                             unitProgress.Counter__c ++ ;
                         }

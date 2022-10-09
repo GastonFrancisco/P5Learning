@@ -4,32 +4,34 @@ import getUnitWrapper from '@salesforce/apex/UnitService.getUnitWrapper';
 export default class UnitContent extends LightningElement {
     @api recordId
     error = undefined;
+    wrapper;
     thisQuestions;
     thisUnit;
     
 
-    // @wire(getTrailWrapper, {unitId: 'a013t00001HoyExAAJ'})
-    // unit({ data, error }) {
-    //     if(data) {
-    //         this.wrapper = data;
-    //         this.thisUnit = data.passedUnitIds;
-    //     }else if(error) {
-    //         this.error = error;
-    //     }
-    // }
+    @wire(getUnitWrapper, {unitId: '$recordId'})
+    unit({ data, error }) {
+        if(data) {
+            this.wrapper = data;
+            this.thisUnit = data.thisUnit;
+            this.thisQuestions = data.thisQuestions;
+        }else if(error) {
+            this.error = error;
+        }
+    }
 
     // get correctUnit(){
     //     return this.thisUnit.contains()
     // }
 
-    connectedCallback(){
-        getUnitWrapper({unitId: '$recordId'}).then((data)=>{
-            this.thisUnit = data.thisUnit;
-            this.thisQuestions = data.thisQuestions;
-        }).catch((error) =>{
-            this.error = error;
-        })
-    }
+    // connectedCallback(){
+    //     getUnitWrapper({unitId: '$recordId'}).then((data)=>{
+    //         this.thisUnit = data.thisUnit;
+    //         this.thisQuestions = data.thisQuestions;
+    //     }).catch((error) =>{
+    //         this.error = error;
+    //     })
+    // }
     // @wire(getUnitWrapper, {unitId: '$recordId'})
     // unit({ data, error }) {
     //     if(data) {
