@@ -62,6 +62,8 @@ public with sharing class UnitService {
     public static String metodoDos(Id unitId, String optionByQuestion){
         Id userId = UserInfo.getUserId();
 
+        //TRAER QUESTION PROGRESS PARA VER SI EXISTE. SI EXISTE NO CREAR UNO NUEVO Y ACTUALIZAR LOS DATOS
+        //CASO CONTRARIO CREAR QUESTION PROGRESS
         Unit_Progress__c insertedUnitProgress = [SELECT Id, Status__c, Counter__c, Unit__r.Points__c FROM Unit_Progress__c WHERE Unit__c = :unitId AND User__c = :userId];
 
         insertedUnitProgress.Status__c = 'Answered';
