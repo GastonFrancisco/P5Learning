@@ -11,11 +11,13 @@ public with sharing class UnitProgressTriggerHelper {
 
             List<Unit_Progress__c> unitProgressQuery = [SELECT Id, Name, Status__c, Counter__c, Points__c, User__c, (SELECT Id, Option__c, Option__r.IsCorrect__c FROM Questions_Progress__r) FROM Unit_Progress__c WHERE Id IN :unitIds];
             
+            
             //Este set ↓ va a contener los User Ids obtenidos en la lista unitProgressQuery[linea 12], que estan vinculados con los Units_Progress__c. Estos Ids sirven para asegurarnos de que en usersFromUnitProgress[linea 22] llegen los mismos usuarios que recibimos como relacion(User__c) en unitProgressQuery[linea 12]
             Set<Id> userSet = new Set<Id>();
             
             for(Unit_Progress__c uProgress: unitProgressQuery){
                 userSet.add(uProgress.User__c);
+                System.debug(uProgress.Questions_Progress__r.size());
             }
             
             //Necesitamos esta lista para poder setear los Points__c de User ↓
@@ -34,9 +36,10 @@ public with sharing class UnitProgressTriggerHelper {
             if(unitProgressQuery.size() != 0 ){
                 for(Unit_Progress__c unitProgress : unitProgressQuery){
                     Integer questionsAnsweredCorrectly = 0;
+                    System.debug(unitProgress.Questions_Progress__r);
                     for(Question_Progress__c question : unitProgress.Questions_Progress__r) {
+                        System.debug(question.Option__r.IsCorrect__c);
                         if(question.Option__r.IsCorrect__c){
-                            unitProgress.Status__c = 'Success';
                             questionsAnsweredCorrectly++;
                         }else if(!question.Option__r.IsCorrect__c && unitProgress.Counter__c == null){
                             unitProgress.Counter__c = 1;
@@ -52,6 +55,9 @@ public with sharing class UnitProgressTriggerHelper {
                         unitProgress.Status__c = 'Success';
                         if(userIndexByUnitProgress.containsKey(unitProgress.Id)){
                             //Le pedimos al mapa userIndexByUnitProgress[linea 26] a traves de cada key(Id de UnitProgress[linea 34]) obtenida en las iteracionnes de unitProgress[linea 34] que nos devuelva un indice. Esto permite setear Points__c de cada User y que esten correctamente relacionados
+                            // System.debug(userIndexByUnitProgress.get(unitProgress.Id));
+                            // System.debug(usersFromUnitProgress[userIndexByUnitProgress.get(unitProgress.Id)]);
+                            // System.debug(unitProgress.Points__c);
                             usersFromUnitProgress[userIndexByUnitProgress.get(unitProgress.Id)].Points__c += unitProgress.Points__c;
                         }
                     }else{

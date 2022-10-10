@@ -1,11 +1,11 @@
 public with sharing class UnitService {
 	
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled
     public static void metodo(Id unitId){
         
         Id userId = UserInfo.getUserId();
 
-        Unit__c unitQuery = [SELECT Id,(SELECT Id FROM Units_Progress__r) FROM Unit__c WHERE Id = :unitId LIMIT 1]; //WITH SECURITY_ENFORCED
+        Unit__c unitQuery = [SELECT Id, Points__c, (SELECT Id FROM Units_Progress__r) FROM Unit__c WHERE Id = :unitId LIMIT 1]; //WITH SECURITY_ENFORCED
         Unit_Progress__c unitP = null;
         for(Unit_Progress__c unitProgress: unitQuery.Units_Progress__r){
 			unitP = unitProgress;
@@ -52,44 +52,30 @@ public with sharing class UnitService {
                 }
             }
 
-            Unit_Progress__c unitProgressToInsert = new Unit_Progress__c(Module_Progress__c = moduleProgressByUnit.get(unitId), User__c = userId, Unit__c = unitId, Status__c = 'Draft');
+            Unit_Progress__c unitProgressToInsert = new Unit_Progress__c(Module_Progress__c = moduleProgressByUnit.get(unitId), User__c = userId, Unit__c = unitId, Points__c = unitQuery.Points__c,  Status__c = 'Draft');
 
             insert unitProgressToInsert;
         }
     }
 
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled(cacheable=false)
     public static String metodoDos(Id unitId, String optionByQuestion){
         Id userId = UserInfo.getUserId();
+        System.debug(unitId + ' ' + optionByQuestion);
 
         //TRAER QUESTION PROGRESS PARA VER SI EXISTE. SI EXISTE NO CREAR UNO NUEVO Y ACTUALIZAR LOS DATOS
         //CASO CONTRARIO CREAR QUESTION PROGRESS
-        Unit_Progress__c insertedUnitProgress = [SELECT Id, Status__c, Counter__c, Unit__r.Points__c, (SELECT Question__c, Option__c FROM Questions_Progress__r) FROM Unit_Progress__c WHERE Unit__c = :unitId AND User__c = :userId];
 
-        Map<Id, Id> optionsByQuestion = (Map<Id, Id>)JSON.deserializeStrict( optionByquestion, Map<Id, Id>.class);
+        Unit_Progress__c insertedUnitProgress = [SELECT Id, Status__c, Counter__c, Points__c, Unit__r.Points__c, (SELECT Question__c, Option__c FROM Questions_Progress__r) FROM Unit_Progress__c WHERE Unit__c = :unitId AND User__c = :userId];
+
+        Map<Id, Id> optionsByQuestion = (Map<Id, Id>)JSON.deserializeStrict( optionByQuestion, Map<Id, Id>.class);
+
+        System.debug(insertedUnitProgress.Questions_Progress__r.size());
+        //insertedUnitProgress.Questions_Progress__r.size() <= 0 || insertedUnitProgress.Questions_Progress__r == null
+        //insertedUnitProgress.Questions_Progress__r.size() > 0 || insertedUnitProgress.Questions_Progress__r != null
         
-        if(insertedUnitProgress.Questions_Progress__r != null){
+        if(insertedUnitProgress.Questions_Progress__r.size() <= 0 || insertedUnitProgress.Questions_Progress__r == null){
             insertedUnitProgress.Status__c = 'Answered';
-            
-
-            List<Question_Progress__c> questionProgressToUpdate= new List<Question_Progress__c>();
-            for(Question_Progress__c questionProgress: insertedUnitProgress.Questions_Progress__r){
-                questionProgressToUpdate.add(questionProgress);
-            }
-
-            for(Question_Progress__c questionPro: questionProgressToUpdate){
-                if(optionsByQuestion.containsKey(questionPro.Question__c)){
-                    questionPro.Option__c = optionsByQuestion.get(questionPro.Question__c);
-                }
-            }
-
-            update questionProgressToUpdate;
-
-            update insertedUnitProgress;
-
-        } else{
-            insertedUnitProgress.Status__c = 'Answered';
-            insertedUnitProgress.Points__c = insertedUnitProgress.Unit__r.Points__c;
     
             List<Question_Progress__c> questionProgressToInsert = new List<Question_Progress__c>();
             
@@ -102,12 +88,33 @@ public with sharing class UnitService {
             insert questionProgressToInsert;
     
             update insertedUnitProgress;
+
+        } else if(insertedUnitProgress.Questions_Progress__r.size() > 0 || insertedUnitProgress.Questions_Progress__r != null){
+            insertedUnitProgress.Status__c = 'Answered';
+
+            List<Question_Progress__c> questionProgressToUpdate= new List<Question_Progress__c>();
+            for(Question_Progress__c questionProgress: insertedUnitProgress.Questions_Progress__r){
+                questionProgressToUpdate.add(questionProgress);
+            }
+            
+            for(Question_Progress__c questionPro: questionProgressToUpdate){
+                System.debug(questionPro);
+                if(optionsByQuestion.containsKey(questionPro.Question__c)){
+                    System.debug(optionsByQuestion.containsKey(questionPro.Question__c));
+                    System.debug(optionsByQuestion.get(questionPro.Question__c));
+                    questionPro.Option__c = optionsByQuestion.get(questionPro.Question__c);
+                }
+            }
+
+            update questionProgressToUpdate;
+
+            update insertedUnitProgress;
         }
 
         Unit_Progress__c refreshedUnit = [SELECT Id, Status__c FROM Unit_Progress__c WHERE User__c = :userId AND Unit__c = :unitId AND Id = :insertedUnitProgress.Id];
         
         return refreshedUnit.Status__c;
-    }    
+    }  
     
     public class TrailWrapper{
         @AuraEnabled
