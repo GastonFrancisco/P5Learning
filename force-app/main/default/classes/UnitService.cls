@@ -64,24 +64,45 @@ public with sharing class UnitService {
 
         //TRAER QUESTION PROGRESS PARA VER SI EXISTE. SI EXISTE NO CREAR UNO NUEVO Y ACTUALIZAR LOS DATOS
         //CASO CONTRARIO CREAR QUESTION PROGRESS
-        Unit_Progress__c insertedUnitProgress = [SELECT Id, Status__c, Counter__c, Unit__r.Points__c FROM Unit_Progress__c WHERE Unit__c = :unitId AND User__c = :userId];
+        Unit_Progress__c insertedUnitProgress = [SELECT Id, Status__c, Counter__c, Unit__r.Points__c, (SELECT Question__c, Option__c FROM Questions_Progress__r) FROM Unit_Progress__c WHERE Unit__c = :unitId AND User__c = :userId];
 
-        insertedUnitProgress.Status__c = 'Answered';
-        insertedUnitProgress.Points__c = insertedUnitProgress.Unit__r.Points__c;
-        
         Map<Id, Id> optionsByQuestion = (Map<Id, Id>)JSON.deserializeStrict( optionByquestion, Map<Id, Id>.class);
-
-        List<Question_Progress__c> questionProgressToInsert = new List<Question_Progress__c>();
         
-        Set<Id> questionIds = optionsByQuestion.keySet();
-        for (Id question : questionIds) {
-            Question_Progress__c questionProgress = new Question_Progress__c(Unit_Progress__c = insertedUnitProgress.Id, Question__c = question, Option__c = optionsByquestion.get(question));
-            questionProgressToInsert.add(questionProgress);
+        if(insertedUnitProgress.Questions_Progress__r != null){
+            insertedUnitProgress.Status__c = 'Answered';
+            
+
+            List<Question_Progress__c> questionProgressToUpdate= new List<Question_Progress__c>();
+            for(Question_Progress__c questionProgress: insertedUnitProgress.Questions_Progress__r){
+                questionProgressToUpdate.add(questionProgress);
+            }
+
+            for(Question_Progress__c questionPro: questionProgressToUpdate){
+                if(optionsByQuestion.containsKey(questionPro.Question__c)){
+                    questionPro.Option__c = optionsByQuestion.get(questionPro.Question__c);
+                }
+            }
+
+            update questionProgressToUpdate;
+
+            update insertedUnitProgress;
+
+        } else{
+            insertedUnitProgress.Status__c = 'Answered';
+            insertedUnitProgress.Points__c = insertedUnitProgress.Unit__r.Points__c;
+    
+            List<Question_Progress__c> questionProgressToInsert = new List<Question_Progress__c>();
+            
+            Set<Id> questionIds = optionsByQuestion.keySet();
+            for (Id question : questionIds) {
+                Question_Progress__c questionProgress = new Question_Progress__c(Unit_Progress__c = insertedUnitProgress.Id, Question__c = question, Option__c = optionsByquestion.get(question));
+                questionProgressToInsert.add(questionProgress);
+            }
+    
+            insert questionProgressToInsert;
+    
+            update insertedUnitProgress;
         }
-
-        insert questionProgressToInsert;
-
-        update insertedUnitProgress;
 
         Unit_Progress__c refreshedUnit = [SELECT Id, Status__c FROM Unit_Progress__c WHERE User__c = :userId AND Unit__c = :unitId AND Id = :insertedUnitProgress.Id];
         
