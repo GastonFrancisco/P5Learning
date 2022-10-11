@@ -5,7 +5,7 @@ public with sharing class UnitService {
         
         Id userId = UserInfo.getUserId();
 
-        Unit__c unitQuery = [SELECT Id, Points__c, (SELECT Id FROM Units_Progress__r) FROM Unit__c WHERE Id = :unitId LIMIT 1]; //WITH SECURITY_ENFORCED
+        Unit__c unitQuery = [SELECT Id, Points__c, (SELECT Id FROM Units_Progress__r WHERE User__c = :userId) FROM Unit__c WHERE Id = :unitId LIMIT 1]; //WITH SECURITY_ENFORCED
         Unit_Progress__c unitP = null;
         for(Unit_Progress__c unitProgress: unitQuery.Units_Progress__r){
 			unitP = unitProgress;
@@ -13,11 +13,11 @@ public with sharing class UnitService {
         
         if(unitP == null){
             Unit__c unitIdQuery = [SELECT Module__c FROM Unit__c WHERE Id = :unitId];
-            Module__c checkModule = [SELECT (SELECT Id FROM Modules_Progress__r WHERE User__c = :userId) FROM Module__c WHERE Id = :unitIdQuery.Module__c];
+            Module__c checkModule = [SELECT Skills__c, (SELECT Id FROM Modules_Progress__r WHERE User__c = :userId) FROM Module__c WHERE Id = :unitIdQuery.Module__c];
 
 
             if(checkModule.Modules_Progress__r.size() == 0){
-                Module_Progress__c moduleProgressToInsert = new Module_Progress__c(Module__c = unitIdQuery.Module__c, User__c = userId);
+                Module_Progress__c moduleProgressToInsert = new Module_Progress__c(Module__c = unitIdQuery.Module__c, User__c = userId, Status__c = 'In Progress', Skills__c = checkModule.Skills__c);
     
                 insert moduleProgressToInsert;
             }
@@ -114,6 +114,10 @@ public with sharing class UnitService {
 
         Unit_Progress__c refreshedUnit = [SELECT Id, Status__c FROM Unit_Progress__c WHERE User__c = :userId AND Unit__c = :unitId AND Id = :insertedUnitProgress.Id];
         
+        //RETORNAR:
+        //HACER UN WRAPPER PARA LLEVAR LA INFORMACION QUE RETORNA EL TRIGGER (counter, status, points)
+        //PUEDE SER UN OBJECTO Unit_Progress__c
+
         return refreshedUnit.Status__c;
     }  
     
