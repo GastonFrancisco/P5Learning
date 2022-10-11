@@ -1,6 +1,5 @@
 import { LightningElement, api, wire, track } from 'lwc';
 import getUnitWrapper from '@salesforce/apex/UnitService.getUnitWrapper';
-import metodo from '@salesforce/apex/UnitService.metodo';
 export default class UnitContent extends LightningElement {
     @api recordId
     error = undefined;
@@ -19,16 +18,4 @@ export default class UnitContent extends LightningElement {
             this.error = error;
         }
     }
-
-    renderedCallback(){
-        console.log(this.recordId);
-        metodo({unitId: this.recordId})
-        .then(
-            console.log('Todo joya')
-        )
-        .catch((error) =>
-            console.log(error.body.message)
-        )
-    }
-
 }

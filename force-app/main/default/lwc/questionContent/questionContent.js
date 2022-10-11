@@ -1,5 +1,6 @@
 import { LightningElement, api, track } from 'lwc';
 import metodoDos from '@salesforce/apex/UnitService.metodoDos';
+import metodo from '@salesforce/apex/UnitService.metodo';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 export default class QuestionContent extends LightningElement {
     @api unitId
@@ -8,31 +9,36 @@ export default class QuestionContent extends LightningElement {
     submitAnswers = {};
     keysArray = [];
 
+    renderedCallback(){
+        metodo({unitId: this.unitId})
+        .then(
+            console.log('Todo joya')
+        )
+        .catch((error) =>
+            console.log(error.body.message)
+        )
+    }
+
     handleClick(event){
         const optionId = event.target.dataset.id;
         const questionId = event.target.dataset.qid;
 
         this.submitAnswers[questionId] = optionId;
         this.submitAnswersLenght = Object.values(this.submitAnswers);
-        // if(!this.keysArray.includes(questionId)){
-        //     this.keysArray.push(questionId)
-        //     this.submitAnswers.push({
-        //         [questionId] : optionId
-        //     });
-        // }else{
-        //     this.submitAnswers[this.submitAnswers.findIndex(index => {
-        //         return index.questionId != optionId
-        //     })][`${questionId}`] = optionId;
-
-        // }
-        console.log(optionId);
-        console.log(questionId);
-        console.log(this.submitAnswers);
-        console.log(this.thisQuestions.length);
     }
 
     handleSubmit(){
+        console.log(JSON.stringify(this.submitAnswers));
+        console.log(this.submitAnswers);
+
         if(this.submitAnswersLenght.length == this.thisQuestions.length){
+            // metodo({unitId: this.unitId})
+            // .then(
+            //     console.log('Modulo y/o unidad insertados')
+            // )
+            // .catch((error) =>
+            //     console.log(error)
+            // )
             metodoDos({unitId: this.unitId, optionByQuestion: JSON.stringify(this.submitAnswers)})
             .then((status)=>{
                 if(status == 'Success'){
@@ -50,6 +56,7 @@ export default class QuestionContent extends LightningElement {
                 }
             })
             .catch((error) =>{
+                console.log(error);
                 this.dispatchEvent(new ShowToastEvent({
                     title: 'Error',
                     message: error.message,

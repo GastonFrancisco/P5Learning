@@ -13,11 +13,17 @@ public with sharing class UnitService {
         
         if(unitP == null){
             Unit__c unitIdQuery = [SELECT Module__c FROM Unit__c WHERE Id = :unitId];
-            Module_Progress__c moduleProgressToInsert = new Module_Progress__c(Module__c = unitIdQuery.Module__c, User__c = userId);
+            Module__c checkModule = [SELECT (SELECT Id FROM Modules_Progress__r WHERE User__c = :userId) FROM Module__c WHERE Id = :unitIdQuery.Module__c];
 
-            insert moduleProgressToInsert;
 
-            Module__c moduleId = [SELECT Id, (SELECT Trail__c FROM Trails_Modules__r), (SELECT Name, Id FROM Units__r WHERE Id = :unitId), (SELECT Name, Id FROM Modules_Progress__r WHERE User__c = :userId) FROM Module__c WHERE Id IN (SELECT Module__c FROM Unit__c WHERE Id = :unitId)];
+            if(checkModule.Modules_Progress__r.size() == 0){
+                Module_Progress__c moduleProgressToInsert = new Module_Progress__c(Module__c = unitIdQuery.Module__c, User__c = userId);
+    
+                insert moduleProgressToInsert;
+            }
+
+
+            Module__c moduleId = [SELECT Id, (SELECT Name, Id FROM Units__r WHERE Id = :unitId), (SELECT Name, Id FROM Modules_Progress__r WHERE User__c = :userId) FROM Module__c WHERE Id IN (SELECT Module__c FROM Unit__c WHERE Id = :unitId)];
             
             Map<Id, Id> moduleProgressByUnit = new Map<Id, Id>();
             Id key;
@@ -61,16 +67,14 @@ public with sharing class UnitService {
     @AuraEnabled(cacheable=false)
     public static String metodoDos(Id unitId, String optionByQuestion){
         Id userId = UserInfo.getUserId();
-        System.debug(unitId + ' ' + optionByQuestion);
 
         //TRAER QUESTION PROGRESS PARA VER SI EXISTE. SI EXISTE NO CREAR UNO NUEVO Y ACTUALIZAR LOS DATOS
         //CASO CONTRARIO CREAR QUESTION PROGRESS
 
         Unit_Progress__c insertedUnitProgress = [SELECT Id, Status__c, Counter__c, Points__c, Unit__r.Points__c, (SELECT Question__c, Option__c FROM Questions_Progress__r) FROM Unit_Progress__c WHERE Unit__c = :unitId AND User__c = :userId];
-
+        System.debug(optionByQuestion);
         Map<Id, Id> optionsByQuestion = (Map<Id, Id>)JSON.deserializeStrict( optionByQuestion, Map<Id, Id>.class);
 
-        System.debug(insertedUnitProgress.Questions_Progress__r.size());
         //insertedUnitProgress.Questions_Progress__r.size() <= 0 || insertedUnitProgress.Questions_Progress__r == null
         //insertedUnitProgress.Questions_Progress__r.size() > 0 || insertedUnitProgress.Questions_Progress__r != null
         
@@ -98,10 +102,7 @@ public with sharing class UnitService {
             }
             
             for(Question_Progress__c questionPro: questionProgressToUpdate){
-                System.debug(questionPro);
                 if(optionsByQuestion.containsKey(questionPro.Question__c)){
-                    System.debug(optionsByQuestion.containsKey(questionPro.Question__c));
-                    System.debug(optionsByQuestion.get(questionPro.Question__c));
                     questionPro.Option__c = optionsByQuestion.get(questionPro.Question__c);
                 }
             }
